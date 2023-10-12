@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hello-kube
+  name: backend
   labels:
-    app: hello-kube
+    app: backend
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
-      app: hello-kube
+      app: backend
   template:
     metadata:
       labels:
-        app: hello-kube
+        app: backend
     spec:
       containers:
         - name: hello-kube
@@ -21,29 +21,31 @@ spec:
           ports:
             - containerPort: 8080
       restartPolicy: Always
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: hello-kube-service
+  name: backend-service
 spec:
   selector:
-    app: hello-kube
+    app: backend
   ports:
     - protocol: TCP
       port: 80
       targetPort: 8080
   type: LoadBalancer
 
----
+--- # they need mongo replica set feature to replicate data
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: mongo-deployment
+  name: mongo-statefulset
   labels:
     app: mongo
 spec:
-  replicas: 1
+  serviceName: "mongo-service"
+  replicas: 3
   selector:
     matchLabels:
       app: mongo
@@ -55,42 +57,24 @@ spec:
       containers:
         - name: mongo
           image: mongo:latest
+          args:
+            - "--replSet"
+            - "rs0"
           ports:
             - containerPort: 27017
           volumeMounts:
             - name: mongo-storage
               mountPath: /data/db
-      volumes:
-        - name: mongo-storage
-          persistentVolumeClaim:
-            claimName: mongo-pvc
 
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mongo-pvc
-spec:
-  storageClassName: manual
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: mongo-pv
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 10Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/data/mongo"
+  volumeClaimTemplates:
+    - metadata:
+        name: mongo-storage
+      spec:
+        storageClassName: standard
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi
 
 ---
 apiVersion: v1
@@ -98,6 +82,7 @@ kind: Service
 metadata:
   name: mongo-service
 spec:
+  clusterIP: None
   selector:
     app: mongo
   ports:

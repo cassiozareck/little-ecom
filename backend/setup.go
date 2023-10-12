@@ -11,7 +11,8 @@ import (
 func setupMongoDB() {
 	// Set up MongoDB connection
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	opts := options.Client().ApplyURI("mongodb://mongo-service:27017").SetServerAPIOptions(serverAPI)
+	opts := options.Client().ApplyURI("mongodb://mongo-statefulset-0.mongo-service,mongo-statefulset-1.mongo-service," +
+		"mongo-statefulset-2.mongo-service/?replicaSet=yourReplicaSetName\n").SetServerAPIOptions(serverAPI)
 
 	var err error
 	client, err = mongo.Connect(context.TODO(), opts)
