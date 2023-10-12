@@ -1,5 +1,5 @@
 ### LittleEcom
-Just another self-project. It's my hobby
+CRUD operations on Items 
 
 ### How it works
 It's microservices based. Here's a picture explaining overall architecture
