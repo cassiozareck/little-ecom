@@ -15,11 +15,12 @@ spec:
         app: backend
     spec:
       containers:
-        - name: hello-kube
-          image: cassiozareck/hello-kube:latest
+        - name: little-ecom-backend
+          image: cassiozareck/little-ecom-backend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+
       restartPolicy: Always
 
 ---
