@@ -1,0 +1,5 @@
+architecture: replicaset
+replicaCount: 3
+persistence:
+  storageClass: standard
+
