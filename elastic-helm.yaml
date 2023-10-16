@@ -1,0 +1,14 @@
+master:
+  replicaCount: 1
+
+data:
+  replicaCount: 0
+
+coordinating:
+  replicaCount: 0
+
+ingest:
+  enabled: false
+
+volumePermissions:
+  enabled: true     # necessary for fs access

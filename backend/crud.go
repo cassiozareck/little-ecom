@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -156,6 +157,9 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to save to DB", http.StatusInternalServerError)
 		return
 	}
+
+	message := []byte(fmt.Sprintf("New item added with ID: %s", item.ID))
+	publishToRabbitMQ(message)
 
 	log.Println("Item added ", item)
 	w.WriteHeader(http.StatusOK)

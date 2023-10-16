@@ -1,13 +1,21 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: Title
+  name: notifier-deployment
   labels:
-    app: Title
+    app: notifier
 spec:
-  containers:
-    - name: Title
-      image: Image
-      imagePullPolicy: IfNotPresent
-  restartPolicy: Always
-  
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notifier
+  template:
+    metadata:
+      labels:
+        app: notifier
+    spec:
+      containers:
+        - name: notifier-container
+          image: cassiozareck/little-ecom-notifier:latest
+          ports:
+            - containerPort: 8080
