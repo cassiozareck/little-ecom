@@ -1,0 +1,5 @@
+auth:
+  username: "user"
+  password: "123"
+  securePassword: false
+  erlangCookie: 66278f3a8c48b7c4bff10adf81047dd2

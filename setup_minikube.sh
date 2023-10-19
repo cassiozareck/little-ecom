@@ -15,6 +15,7 @@ fi
 echo "Updating Helm repositories..."
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo add elastic https://helm.elastic.co
 helm repo update
 
 # Install NGINX Ingress Controller
@@ -56,7 +57,7 @@ fi
 # Setup Kibana with Helm
 if ! helm list --deployed | grep -q "^kibana"; then
     echo "Installing Kibana..."
-    helm install kibana bitnami/kibana
+    helm install kibana elastic/kibana -f kibana-helm.yaml
 else
     echo "Kibana release already exists. Skipping installation."
 fi
@@ -64,9 +65,13 @@ fi
 # Install RabbitMQ
 if ! helm list --deployed | grep -q "^rabbitmq"; then
     echo "Installing RabbitMQ..."
-    helm install rabbitmq bitnami/rabbitmq
+    helm install rabbitmq bitnami/rabbitmq -f rabbitmq-helm.yaml
 else
     echo "RabbitMQ release already exists. Skipping installation."
 fi
+
+# Notifier
+echo "Setting up notifier..."
+kubectl apply -f notifier.yaml
 
 echo "Setup complete."
