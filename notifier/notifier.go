@@ -1,4 +1,4 @@
-package notifier
+package main
 
 import (
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -8,7 +8,7 @@ import (
 var rabbitMQConn *amqp.Connection
 
 func setupRabbitMQ() {
-	conn, err := amqp.Dial("amqp://user:2La3fmVyYLKhz5AX@rabbitmq.default.svc.cluster.local:5672/")
+	conn, err := amqp.Dial("amqp://user:123@rabbitmq.default.svc.cluster.local:5672/")
 	if err != nil {
 		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
 	}
@@ -47,8 +47,6 @@ func consumeFromRabbitMQ() {
 	if err != nil {
 		log.Fatalf("Failed to register a consumer: %v", err)
 	}
-
-	log.Println("Waiting for messages. To exit press CTRL+C")
 
 	forever := make(chan bool)
 	go func() {

@@ -16,6 +16,11 @@ func main() {
 	defer closeMongoDB()
 	log.Println("Mongo setup done!")
 
+	err := setupRabbitMQ()
+	if err != nil {
+		log.Fatal("Error setting rabbitmq: ", err)
+	}
+
 	r := mux.NewRouter()
 	r.Use(loggingMiddleware)
 	r.HandleFunc("/items", GetItems).Methods("GET")

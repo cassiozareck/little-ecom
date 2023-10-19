@@ -4,11 +4,8 @@ replicaCount: 2
 persistence:
   storageClass: standard
 
-securityContext:
-  runAsUser: 1000
-  runAsGroup: 3000
-  fsGroup: 2000
-  fsGroupChangePolicy: "OnRootMismatch"
+auth:
+  enabled: false
 
 volumePermissions:
   enabled: true

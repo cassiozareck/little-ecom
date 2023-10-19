@@ -1,13 +1,70 @@
+# rabbitmq-configmap.yaml
 apiVersion: v1
-kind: Pod
+kind: ConfigMap
 metadata:
-  name: Title
-  labels:
-    app: Title
+  name: rabbitmq-config
+data:
+  enabled_plugins: |
+    [rabbitmq_management].
+  rabbitmq.conf: |
+    loopback_users.guest = false
+    management.listener.port = 15672
+
+---
+# rabbitmq-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
 spec:
-  containers:
-    - name: Title
-      image: Image
-      imagePullPolicy: IfNotPresent
-  restartPolicy: Always
-  
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq
+  template:
+    metadata:
+      labels:
+        app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:management
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          env:
+            - name: RABBITMQ_ERLANG_COOKIE
+              value: "my_erlang_cookie"
+            - name: RABBITMQ_DEFAULT_USER
+              value: "user"
+            - name: RABBITMQ_DEFAULT_PASS
+              value: "123"
+          volumeMounts:
+            - name: rabbitmq-config
+              mountPath: /etc/rabbitmq
+              readOnly: true
+      volumes:
+        - name: rabbitmq-config
+          configMap:
+            name: rabbitmq-config
+
+---
+# rabbitmq-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      protocol: TCP
+      port: 5672
+      targetPort: 5672
+    - name: management
+      protocol: TCP
+      port: 15672
+      targetPort: 15672
+
+

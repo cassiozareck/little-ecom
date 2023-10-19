@@ -1,18 +1,20 @@
 package main
 
 import (
+	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 )
 
 var rabbitMQConn *amqp.Connection
 
-func setupRabbitMQ() {
-	conn, err := amqp.Dial("amqp://user:2La3fmVyYLKhz5AX@rabbitmq.default.svc.cluster.local:5672/")
+func setupRabbitMQ() error {
+	conn, err := amqp.Dial("amqp://user:123@rabbitmq.default.svc.cluster.local:5672/")
 	if err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ: %v", err)
+		return fmt.Errorf("failed to connect to RabbitMQ: %v", err)
 	}
 	rabbitMQConn = conn
+	return nil
 }
 
 func publishToRabbitMQ(message []byte) {
