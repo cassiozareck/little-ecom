@@ -52,8 +52,8 @@ func consumeFromRabbitMQ() {
 	go func() {
 		for d := range msgs {
 			log.Printf("Received a message: %s", d.Body)
-			// Here you can add additional processing logic or function calls
 		}
+
 	}()
 
 	<-forever // Block main thread to keep it running
