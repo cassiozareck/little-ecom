@@ -1,26 +1,31 @@
-### LittleEcom
-CRUD operations on Items 
+### Little-ecom
 
 ### How it works
-It's microservices based. Here's a picture explaining overall architecture
-![app_architecture.png](assets/app_architecture.png)
 
-### Request flow
-![request_flow.png](assets/request_flow.png)
+### Visual intuition
 
-### About dumper.sh
-It will continually get logs from every deployment from every pod, dumping each
-deployment log in a different file. This is just a workaround, so I can debug
-without having to rely on complex logging tools.
+### Requirements for execution:
+- Minikube installed
+- Helm installed
+- Python and pygame (optional, for the cluster visualizer)
 
-### Ensure mongo data replication
-```
-rs.initiate({
-  _id: "rs0",
-  members: [
-    { _id: 0, host: "mongo-statefulset-0.mongo-service:27017" },
-    { _id: 1, host: "mongo-statefulset-1.mongo-service:27017" },
-    { _id: 2, host: "mongo-statefulset-2.mongo-service:27017" }
-  ]
-})
-```
+### How to execute
+Run `./setup_minikube.sh` on your shell, and it will automatically build the cluster.
+
+### How to interact with it it
+1- Open: https://editor.swagger.io/
+2- Copy and paste openapi.yaml content into it
+
+This will let you interact with the cluster, the request will reach first at ingress which will redirect
+to the backend service. You can send any request listed
+
+3- (optional) run: `python3 cluster_visualizer.py`. This will open a cluster renderer, which blinks circles representing
+pods through new logs and request flow. It can be useful to see if one request correctly traverses k8s cluster flow 
+(e.g., INGRESS -> Backend -> Mongo).
+
+## Utils
+Under /scripts you can run the debugger script (which will open rabbitmq panel, mongodb compass, 
+and minikube dashboard). Under the same folder, you can also run the start_efk.sh script which will start 
+an efk stack, so you can get cluster logs in real-time using Grafana for visualization, Elasticsearch 
+for storage, filtering and search, and Fluentd as an agent to get logs in every node.
+

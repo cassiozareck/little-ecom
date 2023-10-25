@@ -2,6 +2,8 @@
 
 # Script to start Minikube and set up the base components
 
+set -x
+
 # Start Minikube
 echo "Starting Minikube..."
 minikube start --cpus 2 --memory 4096 --nodes=2
@@ -15,7 +17,7 @@ fi
 echo "Updating Helm repositories..."
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-helm repo update
+helm repo update &
 
 echo "Enable ingress addon"
 minikube addons enable ingress
@@ -27,6 +29,9 @@ if ! helm list --deployed | grep -q "^nginx-ingress"; then
 else
     echo "NGINX Ingress Controller release already exists. Skipping installation."
 fi
+
+echo "Applying ingress rules"
+kubectl apply -f manifests/ingress.yaml
 
 # Setup mongo DB
 if ! helm list --deployed | grep -q "^mongo"; then
@@ -49,4 +54,15 @@ echo "Setting up notifier..."
 kubectl apply -f manifests/notifier.yaml
 
 echo "Base setup complete."
+
+echo "Generating openapi file"
+
+# Get Minikube IP
+MINIKUBE_ADDRESS=$(minikube ip)
+
+# Replace placeholder with actual IP in OpenAPI template
+sed "s/{{MINIKUBE_IP}}/http:\/\/$MINIKUBE_ADDRESS/g" openapi_template.yaml > openapi.yaml
+
+swagger serve -F swagger openapi.yaml
+
 

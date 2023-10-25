@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
@@ -31,7 +32,6 @@ func main() {
 
 	log.Println("Routers done!")
 
-	http.Handle("/", r)
+	http.Handle("/", handlers.CORS()(r))
 	log.Fatal(http.ListenAndServe(":8080", nil))
-
 }

@@ -1,9 +1,11 @@
-openapi: 3.1.0
+swagger: '2.0'
 info:
   version: "1.0.0"
   title: E-Commerce API
-servers:
-  - url: 'http://{{MINIKUBE_IP}}/'
+host: '192.168.49.2'
+schemes:
+  - http
+basePath: '/'
 paths:
   /items/{id}:
     delete:
@@ -15,9 +17,8 @@ paths:
           in: path
           description: Item's unique ID
           required: true
-          schema:
-            type: string
-            format: objectId  # Assuming the ID format is MongoDB's ObjectID
+          type: string
+          format: objectId
       responses:
         '200':
           description: Successfully deleted the item.
@@ -27,6 +28,33 @@ paths:
           description: No item found to delete.
         '500':
           description: Error deleting item.
+    post:
+      summary: Add a new item
+      tags:
+        - Items
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: The item to be added, without the id
+          required: true
+          schema:
+            $ref: '#/definitions/ItemWithoutID'
+      responses:
+        '200':
+          description: Item added successfully.
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+        '400':
+          description: Bad Request (invalid input or JSON decoding failed).
+        '500':
+          description: Internal Server Error or failed to save to DB.
     put:
       summary: Update an item by ID
       tags:
@@ -36,16 +64,14 @@ paths:
           in: path
           description: Item's unique ID to update
           required: true
+          type: string
+          format: objectId
+        - in: body
+          name: body
+          description: Updated item data
+          required: true
           schema:
-            type: string
-            format: objectId
-      requestBody:
-        description: Updated item data
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Item'
+            $ref: '#/definitions/Item'
       responses:
         '200':
           description: Successfully updated the item.
@@ -62,16 +88,13 @@ paths:
           in: path
           description: Unique ID of the item to retrieve
           required: true
-          schema:
-            type: string
-            format: objectId
+          type: string
+          format: objectId
       responses:
         '200':
           description: An item successfully retrieved.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Item'
+          schema:
+            $ref: '#/definitions/Item'
         '400':
           description: Invalid ID format.
         '404':
@@ -87,24 +110,28 @@ paths:
       responses:
         '200':
           description: A list of items successfully retrieved.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Item'
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Item'
         '500':
           description: Failed to retrieve items or internal server error.
 
-components:
-  schemas:
-    Item:
-      type: object
-      properties:
-        id:
-          type: string
-          format: objectId
-        name:
-          type: string
-        price:
-          type: number
+definitions:
+  Item:
+    type: object
+    properties:
+      id:
+        type: string
+        format: objectId
+      name:
+        type: string
+      price:
+        type: number
+  ItemWithoutID:
+    type: object
+    properties:
+      name:
+        type: string
+      price:
+        type: number

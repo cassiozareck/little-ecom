@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: backend-ingress
+spec:
+  ingressClassName: "nginx"  # Tell Kubernetes to use the NGINX Ingress Controller
+  rules:
+    - host: ""
+      http:
+        paths:
+          - path: /  # Route all traffic...
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-service  # ...to the backend-service service
+                port:
+                  number: 80
