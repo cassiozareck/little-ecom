@@ -5,7 +5,7 @@ info:
 servers:
   - url: 'http://192.168.49.2/'
 paths:
-  /items/{id}:
+  /item/{id}:
     delete:
       summary: Remove an item by ID
       tags:
@@ -78,6 +78,7 @@ paths:
           description: Item not found.
         '500':
           description: Failed to send response or internal server error.
+  /item:
     post:
       summary: Add a new item
       tags:
@@ -89,6 +90,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ItemWithoutID'
+
       responses:
         '200':
           description: Item added successfully.

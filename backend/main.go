@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
@@ -23,6 +22,7 @@ func main() {
 	}
 
 	r := mux.NewRouter()
+	r.Use(corsMiddleware)
 	r.Use(loggingMiddleware)
 	r.HandleFunc("/items", GetItems).Methods("GET")
 	r.HandleFunc("/item", AddItem).Methods("POST")
@@ -32,6 +32,7 @@ func main() {
 
 	log.Println("Routers done!")
 
-	http.Handle("/", handlers.CORS()(r))
+	http.Handle("/", r)
+
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
