@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-init-script
+data:
+  init.sql: |
+    CREATE USER your_user WITH PASSWORD 'your_password';
+    CREATE DATABASE auth;
+    GRANT ALL PRIVILEGES ON DATABASE auth TO your_user;
+    \c auth;
+    CREATE TABLE credentials (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL
+    );
