@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth
+  labels:
+    app: auth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: Auth
+  template:
+    metadata:
+      name: Auth
+      labels:
+        app: Auth
+    spec:
+      containers:
+        - name: auth
+          image: little-ecom-auth 
+          imagePullPolicy: Always
+          envFrom:
+            - secretRef:
+                name: jwt-secret
+            - secretRef:
+                name: db-config
+
+        - name: postgres
+          image: postgres
+          envFrom:
+            - secretRef:
+                name: db-config
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+            - name: init-script
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: auth-pvc
+      - name: init-script
+        configMap:
+          name: db-init
+      restartPolicy: Always
+
+
