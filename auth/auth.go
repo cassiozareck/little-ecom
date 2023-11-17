@@ -18,6 +18,8 @@ import (
 var db *sql.DB
 
 func Register(w http.ResponseWriter, r *http.Request) {
+	log.Println("Registering")
+
 	// Parse the request body to get user credentials
 	var creds struct {
 		Email    string `json:"email"`
@@ -31,7 +33,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	// Validate the email
 	if _, err := mail.ParseAddress(creds.Email); err != nil {
-		http.Error(w, "Invalid email address", http.StatusBadRequest)
+		http.Error(w, "Invalid email address: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -43,14 +45,14 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.DefaultCost)
 	if err != nil {
-		http.Error(w, "Error while hashing the password", http.StatusInternalServerError)
+		http.Error(w, "Error while hashing the password: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Insert the user into the database
 	_, err = db.Exec("INSERT INTO users(email, password_hash) VALUES($1, $2)", creds.Email, hashedPassword)
 	if err != nil {
-		http.Error(w, "Error while storing user", http.StatusInternalServerError)
+		http.Error(w, "Error while storing user: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -60,6 +62,8 @@ func Register(w http.ResponseWriter, r *http.Request) {
 var jwtKey = []byte(os.Getenv("JWT_KEY"))
 
 func SignIn(w http.ResponseWriter, r *http.Request) {
+	log.Println("Signing in")
+
 	// Parse the request body
 	var creds struct {
 		Email    string `json:"email"`
@@ -78,7 +82,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		if err == sql.ErrNoRows {
 			http.Error(w, "User not found", http.StatusUnauthorized)
 		} else {
-			http.Error(w, "Error while querying the database", http.StatusInternalServerError)
+			http.Error(w, "Error while querying the database: "+err.Error(), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -86,7 +90,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 	// Compare the stored hashed password with the provided password
 	err = bcrypt.CompareHashAndPassword([]byte(storedHashedPassword), []byte(creds.Password))
 	if err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		http.Error(w, "Invalid credentials: "+err.Error(), http.StatusUnauthorized)
 		return
 	}
 
@@ -99,7 +103,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 	// Sign the token with our secret key
 	tokenString, err := token.SignedString(jwtKey)
 	if err != nil {
-		http.Error(w, "Error while signing the token", http.StatusInternalServerError)
+		http.Error(w, "Error while signing the token: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -107,6 +111,8 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func ValidateToken(w http.ResponseWriter, r *http.Request) {
+	log.Println("Validating token")
+
 	// Parse the token from the request
 	var tokenString string
 	err := json.NewDecoder(r.Body).Decode(&tokenString)
@@ -118,7 +124,7 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) {
 	// Parse the token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"], err.Error())
 		}
 		return jwtKey, nil
 	})
@@ -170,9 +176,9 @@ func main() {
 	// Create a new Gorilla Mux router
 	r := mux.NewRouter()
 
-	r.HandleFunc("/register", Register).Methods("POST")
-	r.HandleFunc("/signin", SignIn).Methods("POST")
-	r.HandleFunc("/validate", ValidateToken).Methods("POST")
+	r.HandleFunc("/auth/register", Register).Methods("POST")
+	r.HandleFunc("/auth/signin", SignIn).Methods("POST")
+	r.HandleFunc("/auth/validate", ValidateToken).Methods("POST")
 
 	// Start the HTTP server
 	http.ListenAndServe(":8080", r)
