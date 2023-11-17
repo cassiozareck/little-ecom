@@ -20,7 +20,7 @@ var db *sql.DB
 func Register(w http.ResponseWriter, r *http.Request) {
 	log.Println("Registering")
 
-	// Parse the request body to get user credentials
+	// Parse the request body to get account credentials
 	var creds struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -49,10 +49,10 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Insert the user into the database
-	_, err = db.Exec("INSERT INTO users(email, password_hash) VALUES($1, $2)", creds.Email, hashedPassword)
+	// Insert the account into the database
+	_, err = db.Exec(`INSERT INTO account(username, password) VALUES($1, $2)`, creds.Email, hashedPassword)
 	if err != nil {
-		http.Error(w, "Error while storing user: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Error while storing account: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -75,12 +75,12 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get the user's hashed password from the database
+	// Get the account's hashed password from the database
 	var storedHashedPassword string
-	err = db.QueryRow("SELECT password_hash FROM users WHERE email = $1", creds.Email).Scan(&storedHashedPassword)
+	err = db.QueryRow(`SELECT password FROM account WHERE username = $1`, creds.Email).Scan(&storedHashedPassword)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			http.Error(w, "User not found", http.StatusUnauthorized)
+			http.Error(w, "account not found", http.StatusUnauthorized)
 		} else {
 			http.Error(w, "Error while querying the database: "+err.Error(), http.StatusInternalServerError)
 		}
@@ -150,7 +150,7 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Build a PostgreSQL connection string using the environment variables DB_USER and DB_PASSWORD
+	// Build a PostgreSQL connection string using the environment variables DB_account and DB_PASSWORD
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := "192.168.3.9"
