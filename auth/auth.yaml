@@ -8,40 +8,22 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: Auth
+      app: auth
   template:
     metadata:
-      name: Auth
+      name: auth
       labels:
-        app: Auth
+        app: auth
     spec:
       containers:
         - name: auth
-          image: little-ecom-auth 
+          image: cassiozareck/little-ecom-auth
           imagePullPolicy: Always
           envFrom:
             - secretRef:
                 name: jwt-secret
             - secretRef:
                 name: db-config
-
-        - name: postgres
-          image: postgres
-          envFrom:
-            - secretRef:
-                name: db-config
-          volumeMounts:
-            - name: postgres-storage
-              mountPath: /var/lib/postgresql/data
-            - name: init-script
-              mountPath: /docker-entrypoint-initdb.d
-      volumes:
-      - name: postgres-storage
-        persistentVolumeClaim:
-          claimName: auth-pvc
-      - name: init-script
-        configMap:
-          name: db-init
+          ports:
+              - containerPort: 8080
       restartPolicy: Always
-
-

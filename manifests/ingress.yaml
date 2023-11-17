@@ -21,3 +21,10 @@ spec:
                 name: backend-service  # ...to the backend-service service
                 port:
                   number: 80
+          - path: /auth  # Route all traffic...
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-svc  # ...to the auth-service service
+                port:
+                  number: 80

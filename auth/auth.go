@@ -144,20 +144,36 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Build a PostgreSQL connection string using the environment variables DB_USER and DB_PASSWORD
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbHost := "192.168.3.9"
+	dbPort := "5432"
+	dbName := "auth"
+
+	connectionString := "postgres://" + dbUser + ":" + dbPassword + "@" + dbHost + ":" + dbPort + "/" + dbName + "?sslmode=disable"
+
+	log.Println("Connecting with: " + connectionString)
+
+	// Open a connection to the PostgreSQL database
 	var err error
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err = sql.Open("postgres", connectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Check if the connection to the database is successful
 	if err = db.Ping(); err != nil {
 		log.Fatal(err)
 	}
 
+	// Create a new Gorilla Mux router
 	r := mux.NewRouter()
+
 	r.HandleFunc("/register", Register).Methods("POST")
 	r.HandleFunc("/signin", SignIn).Methods("POST")
 	r.HandleFunc("/validate", ValidateToken).Methods("POST")
 
+	// Start the HTTP server
 	http.ListenAndServe(":8080", r)
 }
