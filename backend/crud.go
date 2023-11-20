@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,7 @@ import (
 
 type Item struct {
 	ID    primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Owner string             `json:"owner"`
 	Name  string             `json:"name"`
 	Price float64            `json:"price"`
 }
@@ -30,6 +32,7 @@ func validateItem(item *Item) error {
 }
 
 func RemoveItem(w http.ResponseWriter, r *http.Request) {
+	// put here token validation see if hes updating item hes owner
 	vars := mux.Vars(r)
 	itemID, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
@@ -57,6 +60,7 @@ func RemoveItem(w http.ResponseWriter, r *http.Request) {
 
 // UpdateItem updates an item based on its ID.
 func UpdateItem(w http.ResponseWriter, r *http.Request) {
+	// put here token validation see if hes updating item hes owner
 	itemID, err := primitive.ObjectIDFromHex(mux.Vars(r)["id"])
 	if err != nil {
 		http.Error(w, "Invalid ID format", http.StatusBadRequest)
@@ -133,6 +137,22 @@ func GetItems(w http.ResponseWriter, r *http.Request) {
 func AddItem(w http.ResponseWriter, r *http.Request) {
 	var item Item
 
+	// Extract token from Authorization header
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Missing token", http.StatusBadRequest)
+		return
+	}
+
+	// Send token to auth service
+	username, err := validateToken(token)
+	if err != nil {
+		http.Error(w, "Invalid token", http.StatusBadRequest)
+		return
+	}
+
+	item.Owner = username
+
 	// Decode the request body into the item struct
 	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
 		http.Error(w, "Failed to decode JSON", http.StatusBadRequest)
@@ -151,7 +171,7 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	collection := client.Database("ecommerce").Collection("items")
-	_, err := collection.InsertOne(ctx, item)
+	_, err = collection.InsertOne(ctx, item)
 	if err != nil {
 		log.Printf("Failed to insert record: %v", err)
 		http.Error(w, "Failed to save to DB", http.StatusInternalServerError)
@@ -161,8 +181,32 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 	message := []byte(fmt.Sprintf("New item added with ID: %s", item.ID))
 	publishToRabbitMQ(message)
 
-	log.Println("Item added ", item)
+	log.Println("Item added: ", item)
 	w.WriteHeader(http.StatusOK)
+}
+
+func validateToken(token string) (string, error) {
+	resp, err := http.Post("http://auth-svc:8080/auth/validate", "application/json", bytes.NewBuffer([]byte(token)))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New("invalid token")
+	}
+
+	type authResponse struct {
+		Email string  `json:"email"`
+		Exp   float64 `json:"exp"`
+	}
+
+	var respData authResponse
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		return "", err
+	}
+	return respData.Email, nil
+
 }
 
 // GetItemByID retrieves a specific item based on its ID.
