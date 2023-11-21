@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -40,10 +39,29 @@ func RemoveItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	owner, err := extractAndValidateToken(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Verify if owner is the same as the one in the item
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	coll := client.Database("ecommerce").Collection("items")
+	var item Item
+	err = coll.FindOne(ctx, bson.M{"_id": itemID}).Decode(&item)
+	if err != nil {
+		http.Error(w, "Item not found", http.StatusNotFound)
+		return
+	}
+
+	if item.Owner != owner {
+		http.Error(w, "You should be the item's owner.", http.StatusUnauthorized)
+		return
+	}
+
 	res, err := coll.DeleteOne(ctx, bson.M{"_id": itemID})
 	if err != nil {
 		http.Error(w, "Error deleting item", http.StatusInternalServerError)
@@ -73,6 +91,19 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
+	username, err := extractAndValidateToken(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if item.Owner != username {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	item.Owner = username
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -137,17 +168,9 @@ func GetItems(w http.ResponseWriter, r *http.Request) {
 func AddItem(w http.ResponseWriter, r *http.Request) {
 	var item Item
 
-	// Extract token from Authorization header
-	token := r.Header.Get("Authorization")
-	if token == "" {
-		http.Error(w, "Missing token", http.StatusBadRequest)
-		return
-	}
-
-	// Send token to auth service
-	username, err := validateToken(token)
+	username, err := extractAndValidateToken(r)
 	if err != nil {
-		http.Error(w, "Invalid token", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -155,7 +178,7 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 
 	// Decode the request body into the item struct
 	if err := json.NewDecoder(r.Body).Decode(&item); err != nil {
-		http.Error(w, "Failed to decode JSON", http.StatusBadRequest)
+		http.Error(w, "Failed to decode JSON: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer r.Body.Close()
@@ -183,30 +206,6 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Item added: ", item)
 	w.WriteHeader(http.StatusOK)
-}
-
-func validateToken(token string) (string, error) {
-	resp, err := http.Post("http://auth-svc:8080/auth/validate", "application/json", bytes.NewBuffer([]byte(token)))
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", errors.New("invalid token")
-	}
-
-	type authResponse struct {
-		Email string  `json:"email"`
-		Exp   float64 `json:"exp"`
-	}
-
-	var respData authResponse
-	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
-		return "", err
-	}
-	return respData.Email, nil
-
 }
 
 // GetItemByID retrieves a specific item based on its ID.
