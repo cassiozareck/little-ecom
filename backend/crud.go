@@ -233,3 +233,94 @@ func GetItemByID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to send response", http.StatusInternalServerError)
 	}
 }
+
+// GetItemsByOwner retrieves all items owned by a specific user.
+func GetItemsByOwner(w http.ResponseWriter, r *http.Request) {
+	owner := mux.Vars(r)["owner"]
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	coll := client.Database("ecommerce").Collection("items")
+
+	var items []Item
+	cur, err := coll.Find(ctx, bson.M{"owner": owner})
+	if err != nil {
+		http.Error(w, "Failed to retrieve items", http.StatusInternalServerError)
+		log.Printf("Get items error: %v", err)
+		return
+	}
+	defer cur.Close(ctx)
+
+	for cur.Next(ctx) {
+		var item Item
+		if err := cur.Decode(&item); err != nil {
+			http.Error(w, "Failed to decode item", http.StatusInternalServerError)
+			return
+		}
+		items = append(items, item)
+	}
+
+	if err := cur.Err(); err != nil {
+		http.Error(w, "Cursor error", http.StatusInternalServerError)
+		log.Printf("Cursor error: %v", err)
+		return
+	}
+
+	jsonResponse, err := json.Marshal(items)
+	if err != nil {
+		http.Error(w, "Failed to marshal items", http.StatusInternalServerError)
+		return
+	}
+
+	log.Println("Returning items")
+
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(jsonResponse)
+	if err != nil {
+		log.Fatal("Error while writing response: ", err)
+	}
+}
+
+func BuyItem(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	itemID, err := primitive.ObjectIDFromHex(vars["id"])
+	if err != nil {
+		http.Error(w, "Invalid ID format", http.StatusBadRequest)
+		return
+	}
+
+	username, err := extractAndValidateToken(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	coll := client.Database("ecommerce").Collection("items")
+
+	var item Item
+	err = coll.FindOne(ctx, bson.M{"_id": itemID}).Decode(&item)
+	if err != nil {
+		http.Error(w, "Item not found", http.StatusNotFound)
+		return
+	}
+
+	if item.Owner == username {
+		http.Error(w, "You can't buy your own item", http.StatusBadRequest)
+		return
+	}
+
+	// Delete and send to notifier
+	_, err = coll.DeleteOne(ctx, bson.M{"_id": itemID})
+	if err != nil {
+		http.Error(w, "Error deleting item", http.StatusInternalServerError)
+		return
+	}
+
+	message := []byte(fmt.Sprintf("Item bought with ID: %s", item.ID))
+	publishToRabbitMQ(message)
+
+}

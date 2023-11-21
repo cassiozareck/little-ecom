@@ -10,6 +10,8 @@ paths:
       summary: Remove an item by ID
       tags:
         - Items
+      security:
+        - bearerAuth: [ ]
       parameters:
         - name: id
           in: path
@@ -31,6 +33,8 @@ paths:
       summary: Update an item by ID
       tags:
         - Items
+      security:
+        - bearerAuth: [ ]
       parameters:
         - name: id
           in: path
@@ -78,8 +82,39 @@ paths:
           description: Item not found.
         '500':
           description: Failed to send response or internal server error.
+
+  /items/{owner}:
+    get:
+      security:
+        - bearerAuth: [ ]
+      summary: Retrieve all items owned by a specific user
+      tags:
+        - Items
+      parameters:
+        - name: owner
+          in: path
+          description: Owner's username identifier
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of items successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Item'
+        '400':
+          description: Invalid owner format.
+        '500':
+          description: Failed to retrieve items or internal server error.
+
   /item:
     post:
+      security:
+        - bearerAuth: [ ]  # Use the bearerAuth security scheme defined below
       summary: Add a new item
       tags:
         - Items
@@ -121,6 +156,29 @@ paths:
                   $ref: '#/components/schemas/Item'
         '500':
           description: Failed to retrieve items or internal server error.
+
+  /buy/{id}:
+    put:
+      summary: Buy an item by ID
+      tags:
+        - Items
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: id
+          in: path
+          description: Item's unique ID to buy
+          required: true
+          schema:
+            type: string
+            format: objectId
+      responses:
+        '200':
+          description: Successfully bought the item.
+        '400':
+          description: Invalid ID format or Bad Input.
+        '500':
+          description: Update Failed or Internal Server Error.
 
   /auth/register:
     post:
@@ -217,6 +275,12 @@ paths:
 
 
 components:
+  securitySchemes:
+    bearerAuth: # Arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     Item:
       type: object
@@ -224,6 +288,8 @@ components:
         id:
           type: string
           format: objectId
+        owner:
+          type: string
         name:
           type: string
         price:
@@ -233,5 +299,8 @@ components:
       properties:
         name:
           type: string
+        owner:
+          type: string
+          format: objectId
         price:
           type: number

@@ -24,11 +24,14 @@ func main() {
 	r := mux.NewRouter()
 	r.Use(corsMiddleware)
 	r.Use(loggingMiddleware)
-	r.HandleFunc("/items", GetItems).Methods("GET")
-	r.HandleFunc("/item", AddItem).Methods("POST")
+
 	r.HandleFunc("/item/{id:[a-f\\d]{24}}", GetItemByID).Methods("GET")
+	r.HandleFunc("/item", AddItem).Methods("POST")
 	r.HandleFunc("/item/{id:[a-f\\d]{24}}", RemoveItem).Methods("DELETE")
 	r.HandleFunc("/item/{id:[a-f\\d]{24}}", UpdateItem).Methods("PUT")
+	r.HandleFunc("/items/{owner}", GetItemsByOwner).Methods("GET")
+	r.HandleFunc("/items", GetItems).Methods("GET")
+	r.HandleFunc("/buy/{id:[a-f\\d]{24}}", BuyItem).Methods("POST")
 
 	log.Println("Routers done!")
 

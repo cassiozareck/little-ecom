@@ -113,13 +113,19 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 func ValidateToken(w http.ResponseWriter, r *http.Request) {
 	log.Println("Validating token")
 
-	// Parse the token from the request
-	var tokenString string
-	err := json.NewDecoder(r.Body).Decode(&tokenString)
+	type TokenRequest struct {
+		Token string `json:"token"`
+	}
+
+	var req TokenRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	tokenString := req.Token
 
 	// Parse the token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {

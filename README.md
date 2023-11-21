@@ -29,3 +29,10 @@ and minikube dashboard). Under the same folder, you can also run the start_efk.s
 an efk stack, so you can get cluster logs in real-time using Grafana for visualization, Elasticsearch 
 for storage, filtering and search, and Fluentd as an agent to get logs in every node.
 
+## Common commands
+
+- `helm repo add bitnami https://charts.bitnami.com/bitnami` -> Adds bitnami repo
+- `helm install mongo bitnami/mongodb -f helms-manifests/mongo-helm.yaml` -> Installs mongodb
+- `minikube dashboard` -> Opens the k8s dashboard
+- `k apply -f helms-manifests/rabbitmq.yaml` -> Applies rabbitmq manifest
+- `k rollout restart deployment/backend` -> Restarts backend deployment
