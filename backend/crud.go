@@ -194,21 +194,27 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	collection := client.Database("ecommerce").Collection("items")
-	_, err = collection.InsertOne(ctx, item)
+	res, err := collection.InsertOne(ctx, item)
 	if err != nil {
 		log.Printf("Failed to insert record: %v", err)
 		http.Error(w, "Failed to save to DB", http.StatusInternalServerError)
 		return
 	}
+	// Assuming your ID is an ObjectId
+	oid, ok := res.InsertedID.(primitive.ObjectID)
+	if !ok {
+		http.Error(w, "Failed to convert to OID", http.StatusInternalServerError)
+		return
+	}
 
-	message := []byte(fmt.Sprintf("New item added with ID: %s", item.ID))
+	message := []byte(fmt.Sprintf("New item added with ID: %s", oid.Hex()))
 	publishToRabbitMQ(message)
 
 	log.Println("Item added: ", item)
 
 	// It should return ID
 	w.WriteHeader(http.StatusCreated)
-	_, err = w.Write([]byte(item.ID.Hex()))
+	_, err = w.Write([]byte(oid.Hex()))
 
 	if err != nil {
 		log.Fatal("Error while writing response: ", err)

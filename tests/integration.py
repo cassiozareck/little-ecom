@@ -21,7 +21,7 @@ class APITestClient:
         headers = {'Authorization': f'Bearer {self.token}'}
         response = requests.post(f'{self.BASE_URL}/item', json=item_data, headers=headers)
         print("add_item: ", response, response.text)
-        assert response.status_code == 200
+        assert response.status_code == 201
         return response.text
 
     def get_item(self, item_id):
@@ -35,7 +35,7 @@ class APITestClient:
     def delete_account(self, account):
         response = requests.delete(f'{self.BASE_URL}/auth/delete', json=account)
         print("delete_account: ", response, response.text)
-        assert response.status_code == 200
+        assert response.status_code == 204
 
     def remove_item(self, item_id):
         headers = {'Authorization': f'Bearer {self.token}'}
@@ -54,15 +54,16 @@ def test_suite1():
         "owner": "testowner",
         "price": 9.99
     }
-
-    client.register(test_user)
-    client.signin(test_user)
-    id = client.add_item(test_item)
-    print(id)
-    item = client.get_item(id)
-    client.remove_item(id)
-    print(item)
-
-    client.delete_account(test_user)
+    id = None
+    try:
+        client.register(test_user)
+        client.signin(test_user)
+        id = client.add_item(test_item)
+        print(id)
+        item = client.get_item(id)
+        print(item)
+    finally:
+        client.remove_item(id)
+        client.delete_account(test_user)
 
 test_suite1()
