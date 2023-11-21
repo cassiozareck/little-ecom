@@ -169,6 +169,49 @@ func ValidateToken(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func DeleteAccount(w http.ResponseWriter, r *http.Request) {
+	log.Println("Deleting account")
+
+	// Parse the request body
+	var creds struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&creds)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Get the account's hashed password from the database
+	var storedHashedPassword string
+	err = db.QueryRow(`SELECT password FROM account WHERE username = $1`, creds.Email).Scan(&storedHashedPassword)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "account not found", http.StatusUnauthorized)
+		} else {
+			http.Error(w, "Error while querying the database: "+err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Compare the stored hashed password with the provided password
+	err = bcrypt.CompareHashAndPassword([]byte(storedHashedPassword), []byte(creds.Password))
+	if err != nil {
+		http.Error(w, "Invalid credentials: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Delete the account from the database
+	_, err = db.Exec(`DELETE FROM account WHERE username = $1`, creds.Email)
+	if err != nil {
+		http.Error(w, "Error while deleting account: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func main() {
 	// Build a PostgreSQL connection string using the environment variables DB_account and DB_PASSWORD
 	dbUser := os.Getenv("DB_USER")
@@ -199,7 +242,7 @@ func main() {
 	r.HandleFunc("/auth/register", Register).Methods("POST")
 	r.HandleFunc("/auth/signin", SignIn).Methods("POST")
 	r.HandleFunc("/auth/validate", ValidateToken).Methods("POST")
-
+	r.HandleFunc("/auth/delete", DeleteAccount).Methods("DELETE")
 	// Start the HTTP server
 	http.ListenAndServe(":8080", r)
 }

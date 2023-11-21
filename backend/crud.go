@@ -205,7 +205,14 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 	publishToRabbitMQ(message)
 
 	log.Println("Item added: ", item)
-	w.WriteHeader(http.StatusOK)
+
+	// It should return ID
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write([]byte(item.ID.Hex()))
+
+	if err != nil {
+		log.Fatal("Error while writing response: ", err)
+	}
 }
 
 // GetItemByID retrieves a specific item based on its ID.
