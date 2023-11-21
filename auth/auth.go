@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
@@ -34,6 +35,19 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	// Validate the email
 	if _, err := mail.ParseAddress(creds.Email); err != nil {
 		http.Error(w, "Invalid email address: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Verify if the account already exists
+	var storedEmail string
+	err = db.QueryRow(`SELECT username FROM account WHERE username = $1`, creds.Email).Scan(&storedEmail)
+	if err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Error while querying the database: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		http.Error(w, "Account already exists", http.StatusBadRequest)
 		return
 	}
 

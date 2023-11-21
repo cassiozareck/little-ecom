@@ -8,17 +8,28 @@ class APITestClient:
 
     def register(self, user_data):
         response = requests.post(f'{self.BASE_URL}/auth/register', json=user_data)
+        print("register: ", response)
         assert response.status_code == 201
 
     def signin(self, user_data):
         response = requests.post(f'{self.BASE_URL}/auth/signin', json=user_data)
+        print("signin: ", response)
         assert response.status_code == 200
         self.token = response.text
 
     def add_item(self, item_data):
         headers = {'Authorization': f'Bearer {self.token}'}
         response = requests.post(f'{self.BASE_URL}/item', json=item_data, headers=headers)
+        print("add_item: ", response)
         assert response.status_code == 200
+        return response.text
+
+    def get_item(self, item_id):
+        headers = {'Authorization': f'Bearer {self.token}'}
+        response = requests.get(f'{self.BASE_URL}/item/{item_id}', headers=headers)
+        print("get_item: ", response)
+        assert response.status_code == 200
+        return response.json()
 
 def test_api_workflow():
     client = APITestClient()
@@ -34,6 +45,7 @@ def test_api_workflow():
 
     client.register(test_user)
     client.signin(test_user)
-    client.add_item(test_item)
-
+    id = client.add_item(test_item)
+    item = client.get_item(id)
+    print(item)
 test_api_workflow()
