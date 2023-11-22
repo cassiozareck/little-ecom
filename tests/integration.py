@@ -151,9 +151,28 @@ def test_suite3():
     try:
         client.register(test_user)
     except AssertionError:
-        print("Response expected")
+        print("Response expected since email and password are invalid")
+
+# Test suite 4 will try to add an item without signing in
+def test_suite4():
+    print()
+    print("TEST SUITE 4: --------")
+    print()
+
+    client = APITestClient()
+    test_item = {
+        "name": "Test Item",
+        "owner": "testowner",
+        "price": 9.99
+    }
+    try:
+        client.add_item(test_item)
+    except AssertionError:
+        print("Response expected since user is not signed in")
+
 
 if __name__ == '__main__':
     test_suite1()
     test_suite2()
     test_suite3()
+    test_suite4()
