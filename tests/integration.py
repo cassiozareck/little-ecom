@@ -1,5 +1,6 @@
 import requests
 
+
 class APITestClient:
     BASE_URL = 'http://192.168.49.2'
 
@@ -51,6 +52,12 @@ class APITestClient:
         assert response.status_code == 200
         return response.json()
 
+    def buy_item(self, item_id):
+        headers = {'Authorization': f'Bearer {self.token}'}
+        response = requests.post(f'{self.BASE_URL}/buy/{item_id}', headers=headers)
+        print("buy_item: ", response, response.text)
+        assert response.status_code == 200
+
     # should pass the account to be deleted in body (email and password)
     def delete_account(self, account):
         response = requests.delete(f'{self.BASE_URL}/auth/delete', json=account)
@@ -62,6 +69,7 @@ class APITestClient:
         response = requests.delete(f'{self.BASE_URL}/item/{item_id}', headers=headers)
         print("remove_item: ", response, response.text)
         assert response.status_code == 200
+
 
 # Basic test suite that will register a user, add an item, update the item, and
 # delete the item and user, not making any mistake.
@@ -137,6 +145,7 @@ def test_suite2():
         client.remove_item(id2)
         client.delete_account(test_user)
 
+
 # This test suite will try to register a user with an invalid email and password
 def test_suite3():
     print()
@@ -152,6 +161,7 @@ def test_suite3():
         client.register(test_user)
     except AssertionError:
         print("Response expected since email and password are invalid")
+
 
 # Test suite 4 will try to add an item without signing in
 def test_suite4():
@@ -171,8 +181,47 @@ def test_suite4():
         print("Response expected since user is not signed in")
 
 
+# Test suite 5 will try to buy an item
+def test_suite5():
+    print()
+    print("TEST SUITE 5: --------")
+    print()
+
+    client = APITestClient()
+    test_user = {
+        "email": "megy@gmail.com",
+        "password": "securepassword",
+    }
+    test_user2 = {
+        "email": "carl@gmail.com",
+        "password": "securepassword",
+    }
+
+    test_item = {
+        "name": "apple",
+        "owner": "megy",
+        "price": 0.99
+    }
+    try:
+        client.register(test_user)
+        client.signin(test_user)
+        id = client.add_item(test_item)
+
+        client.register(test_user2)
+        client.signin(test_user2)
+        client.buy_item(id)
+        try:
+            client.buy_item(id)
+        except AssertionError:
+            print("Response expected since item is already bought")
+    finally:
+        client.delete_account(test_user)
+        client.delete_account(test_user2)
+
+
 if __name__ == '__main__':
     test_suite1()
     test_suite2()
     test_suite3()
     test_suite4()
+    test_suite5()

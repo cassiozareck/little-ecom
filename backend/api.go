@@ -105,6 +105,12 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 
 	item.Owner = username
 
+	err = validateItem(&item)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
