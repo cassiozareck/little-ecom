@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 )
@@ -51,12 +52,29 @@ func consumeFromRabbitMQ() {
 	forever := make(chan bool)
 	go func() {
 		for d := range msgs {
-			log.Printf("Received a message: %s", d.Body)
+			log.Println("Received a message from: ", d.RoutingKey)
+			handleMessage(d.Body)
 		}
 
 	}()
 
 	<-forever // Block main thread to keep it running
+}
+
+type Item struct {
+	ID    string  `json:"id"`
+	Owner string  `json:"owner"`
+	Name  string  `json:"name"`
+	Price float64 `json:"price"`
+}
+
+func handleMessage(message []byte) {
+	var order Item
+	err := json.Unmarshal(message, &order)
+	if err != nil {
+		log.Println("Failed to unmarshal message: ", err)
+		return
+	}
 }
 
 func main() {

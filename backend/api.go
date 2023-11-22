@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -206,15 +205,23 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to save to DB", http.StatusInternalServerError)
 		return
 	}
-	// Assuming your ID is an ObjectId
+
+	// Assuming ID is an ObjectId
 	oid, ok := res.InsertedID.(primitive.ObjectID)
 	if !ok {
 		http.Error(w, "Failed to convert to OID", http.StatusInternalServerError)
 		return
 	}
 
-	message := []byte(fmt.Sprintf("New item added with ID: %s", oid.Hex()))
-	publishToRabbitMQ(message)
+	item.ID = oid
+	jsonItem, err := json.Marshal(item)
+
+	if err != nil {
+		http.Error(w, "Failed to marshal item", http.StatusInternalServerError)
+		return
+	}
+
+	publishToRabbitMQ("ecom.", jsonItem)
 
 	log.Println("Item added: ", item)
 
@@ -338,8 +345,5 @@ func BuyItem(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error deleting item", http.StatusInternalServerError)
 		return
 	}
-
-	message := []byte(fmt.Sprintf("Item bought with ID: %s", item.ID))
-	publishToRabbitMQ(message)
 
 }
