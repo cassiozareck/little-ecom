@@ -27,14 +27,33 @@ func setupRabbitMQ() error {
 		return fmt.Errorf("failed to declare an exchange: %v", err)
 	}
 
-	queue, err := ch.QueueDeclare("ecom-queue", true, false, false, false, nil)
+	queueAdd, err := ch.QueueDeclare("ecom-queue-item-add", true, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to declare a queue: %v", err)
 	}
 
-	// We're gonna define a queue with its binding being ecom.* which means it will receive all messages
-	// if the routing key starts with ecom.
-	err = ch.QueueBind(queue.Name, "ecom.*", "ecom-exchange", false, nil)
+	queueBuy, err := ch.QueueDeclare("ecom-queue-item-bought", true, false, false, false, nil)
+	if err != nil {
+		return fmt.Errorf("failed to declare a queue: %v", err)
+	}
+
+	queueSold, err := ch.QueueDeclare("ecom-queue-item-sold", true, false, false, false, nil)
+	if err != nil {
+		return fmt.Errorf("failed to declare a queue: %v", err)
+	}
+
+	// We're gonna define a queue with its binding key being ecom.add.item
+	err = ch.QueueBind(queueAdd.Name, "ecom.item.add", "ecom-exchange", false, nil)
+	if err != nil {
+		return fmt.Errorf("failed to bind the queue to the exchange: %v", err)
+	}
+
+	err = ch.QueueBind(queueBuy.Name, "ecom.item.buy", "ecom-exchange", false, nil)
+	if err != nil {
+		return fmt.Errorf("failed to bind the queue to the exchange: %v", err)
+	}
+
+	err = ch.QueueBind(queueSold.Name, "ecom.item.sold", "ecom-exchange", false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to bind the queue to the exchange: %v", err)
 	}
@@ -61,4 +80,10 @@ func publishToRabbitMQ(routingKey string, message []byte) {
 	if err != nil {
 		log.Fatalf("Failed to publish a message: %v", err)
 	}
+}
+
+type NotificationItem struct {
+	Email string  `json:"email"`
+	Name  string  `json:"item"`
+	Price float64 `json:"price"`
 }

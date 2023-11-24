@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -38,7 +39,7 @@ func RemoveItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	owner, err := extractAndValidateToken(r)
+	owner, err := extractAndValidateToken(r, true)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -91,7 +92,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	username, err := extractAndValidateToken(r)
+	username, err := extractAndValidateToken(r, true)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -173,11 +174,13 @@ func GetItems(w http.ResponseWriter, r *http.Request) {
 func AddItem(w http.ResponseWriter, r *http.Request) {
 	var item Item
 
-	username, err := extractAndValidateToken(r)
+	email, err := extractAndValidateToken(r, false)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	username := strings.Split(email, "@")[0]
 
 	item.Owner = username
 
@@ -214,8 +217,14 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	item.ID = oid
-	jsonItem, err := json.Marshal(item)
 
+	notificationItem := NotificationItem{
+		Email: email,
+		Name:  item.Name,
+		Price: item.Price,
+	}
+
+	jsonItem, err := json.Marshal(notificationItem)
 	if err != nil {
 		http.Error(w, "Failed to marshal item", http.StatusInternalServerError)
 		return
@@ -316,7 +325,7 @@ func BuyItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username, err := extractAndValidateToken(r)
+	username, err := extractAndValidateToken(r, true)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

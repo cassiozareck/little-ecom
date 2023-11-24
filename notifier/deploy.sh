@@ -1,4 +1,5 @@
 #!/bin/bash
-sudo docker build -t cassiozareck/little-ecom-notifier:latest .
-sudo docker push cassiozareck/little-ecom-notifier:latest
+docker build -t cassiozareck/little-ecom-notifier:latest .
+docker push cassiozareck/little-ecom-notifier:latest
 
+kubectl rollout restart deploy notifier-deployment

@@ -9,7 +9,8 @@ import (
 	"strings"
 )
 
-func extractAndValidateToken(r *http.Request) (string, error) {
+// Trunk: if true, return only the username part of the email address
+func extractAndValidateToken(r *http.Request, trunk bool) (string, error) {
 	token := extractToken(r)
 	if token == "" {
 		return "", fmt.Errorf("no token found")
@@ -18,12 +19,16 @@ func extractAndValidateToken(r *http.Request) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid token: %v", err)
 	}
-	// since username is a email address we should cut off the domain part
-	emailParts := strings.Split(email, "@")
-	if len(emailParts) != 2 {
-		return "", fmt.Errorf("invalid email address: %s", email)
+
+	if trunk {
+		// since the username is an email address, we should cut off the domain part
+		emailParts := strings.Split(email, "@")
+		if len(emailParts) != 2 {
+			return "", fmt.Errorf("invalid email address: %s", email)
+		}
+		return emailParts[0], nil
 	}
-	return emailParts[0], nil
+	return email, nil
 }
 
 func extractToken(r *http.Request) string {

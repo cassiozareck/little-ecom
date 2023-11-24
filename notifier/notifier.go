@@ -63,18 +63,24 @@ func consumeFromRabbitMQ() {
 
 type Item struct {
 	ID    string  `json:"id"`
-	Owner string  `json:"owner"`
+	Email string  `json:"email"`
 	Name  string  `json:"name"`
 	Price float64 `json:"price"`
 }
 
 func handleMessage(message []byte) {
-	var order Item
-	err := json.Unmarshal(message, &order)
+	// Log the raw message for debugging
+	log.Printf("Raw message: %s", string(message))
+
+	var product Item
+	err := json.Unmarshal(message, &product)
 	if err != nil {
 		log.Println("Failed to unmarshal message: ", err)
 		return
 	}
+
+	log.Println("Handling product: ", product)
+
 }
 
 func main() {
