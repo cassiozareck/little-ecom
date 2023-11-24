@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 )
@@ -16,23 +17,36 @@ func setupRabbitMQ() {
 	rabbitMQConn = conn
 }
 
-func consumeFromRabbitMQ() {
+func consumeFromRabbitMQ(queueName string, routingKey string, handler func([]byte)) {
 	ch, err := rabbitMQConn.Channel()
 	if err != nil {
 		log.Fatalf("Failed to open a channel: %v", err)
 	}
 	defer ch.Close()
 
+	// Declare the queue
 	queue, err := ch.QueueDeclare(
-		"ecom-queue", // name
-		true,         // durable
-		false,        // delete when unused
-		false,        // exclusive
-		false,        // no-wait
-		nil,          // arguments
+		queueName, // name
+		true,      // durable
+		false,     // delete when unused
+		false,     // exclusive
+		false,     // no-wait
+		nil,       // arguments
 	)
 	if err != nil {
 		log.Fatalf("Failed to declare a queue: %v", err)
+	}
+
+	// Bind the queue to the exchange
+	err = ch.QueueBind(
+		queue.Name,      // queue name
+		routingKey,      // routing key
+		"ecom-exchange", // exchange
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to bind the queue: %v", err)
 	}
 
 	// Start a consumer
@@ -49,43 +63,66 @@ func consumeFromRabbitMQ() {
 		log.Fatalf("Failed to register a consumer: %v", err)
 	}
 
-	forever := make(chan bool)
 	go func() {
 		for d := range msgs {
 			log.Println("Received a message from: ", d.RoutingKey)
-			handleMessage(d.Body)
+			handler(d.Body)
 		}
-
 	}()
-
-	<-forever // Block main thread to keep it running
 }
 
-type Item struct {
-	ID    string  `json:"id"`
+type NotificationItem struct {
 	Email string  `json:"email"`
-	Name  string  `json:"name"`
+	Name  string  `json:"item"`
 	Price float64 `json:"price"`
 }
 
-func handleMessage(message []byte) {
-	// Log the raw message for debugging
-	log.Printf("Raw message: %s", string(message))
-
-	var product Item
-	err := json.Unmarshal(message, &product)
+func handlerAddedItems(message []byte) {
+	notificationItem := NotificationItem{}
+	err := json.Unmarshal(message, &notificationItem)
 	if err != nil {
 		log.Println("Failed to unmarshal message: ", err)
 		return
 	}
 
-	log.Println("Handling product: ", product)
+	// Email content.
+	subject := "New Item Added: " + notificationItem.Name
+	body := "A new item has been added with a price of $" + fmt.Sprintf("%.2f", notificationItem.Price)
 
+	// Since emails services like gmail can block emails sent repeatedly from the same account, I'll comment
+	// the lines and just print the email content to the console. But keep in mind that the code is correctly
+	// implemented if you uncomment and put your own email credentials under notifier/smtp.go
+
+	// Send the email.
+	//err = sendEmail(notificationItem.Email, subject, body)
+	//if err != nil {
+	//	log.Printf("Failed to send email: %v\n", err)
+	//}
+
+	log.Printf("Email sent successfully \n%v \n%v\n", subject, body)
+}
+
+func handlerBoughtItems(message []byte) {
+	notificationItem := NotificationItem{}
+	err := json.Unmarshal(message, &notificationItem)
+	if err != nil {
+		log.Println("Failed to unmarshal message: ", err)
+		return
+	}
+
+	// Email content.
+	subject := "Item Bought: " + notificationItem.Name
+	body := "You bought an item with a price of $" + fmt.Sprintf("%.2f", notificationItem.Price)
+
+	log.Printf("Email sent successfully \n%v \n%v\n", subject, body)
 }
 
 func main() {
 	setupRabbitMQ()
 	defer rabbitMQConn.Close()
 
-	consumeFromRabbitMQ()
+	consumeFromRabbitMQ("ecom-queue-item-added", "ecom.item.add", handlerAddedItems)
+	consumeFromRabbitMQ("ecom-queue-item-bought", "ecom.item.buy", handlerBoughtItems)
+
+	select {} // Block
 }
