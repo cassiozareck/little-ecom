@@ -230,7 +230,7 @@ func AddItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	publishToRabbitMQ("ecom.", jsonItem)
+	publishToRabbitMQ("ecom.item.add", jsonItem)
 
 	log.Println("Item added: ", item)
 
@@ -325,11 +325,13 @@ func BuyItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username, err := extractAndValidateToken(r, true)
+	email, err := extractAndValidateToken(r, false)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	username := strings.Split(email, "@")[0]
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -355,4 +357,21 @@ func BuyItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Publish to notifier who bought the item
+	notificationItem := NotificationItem{
+		Email: email,
+		Name:  item.Name,
+		Price: item.Price,
+	}
+
+	jsonItem, err := json.Marshal(notificationItem)
+	if err != nil {
+		http.Error(w, "Failed to marshal item", http.StatusInternalServerError)
+		return
+	}
+
+	publishToRabbitMQ("ecom.item.buy", jsonItem)
+
+	log.Println("Item bought: ", item)
+	w.WriteHeader(http.StatusOK)
 }

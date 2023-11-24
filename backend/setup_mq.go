@@ -8,6 +8,12 @@ import (
 
 var rabbitMQConn *amqp.Connection
 
+type NotificationItem struct {
+	Email string  `json:"email"`
+	Name  string  `json:"item"`
+	Price float64 `json:"price"`
+}
+
 func setupRabbitMQ() error {
 	conn, err := amqp.Dial("amqp://user:123@rabbitmq.default.svc.cluster.local:5672/")
 	if err != nil {
@@ -27,17 +33,12 @@ func setupRabbitMQ() error {
 		return fmt.Errorf("failed to declare an exchange: %v", err)
 	}
 
-	queueAdd, err := ch.QueueDeclare("ecom-queue-item-add", true, false, false, false, nil)
+	queueAdd, err := ch.QueueDeclare("ecom-queue-item-added", true, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to declare a queue: %v", err)
 	}
 
 	queueBuy, err := ch.QueueDeclare("ecom-queue-item-bought", true, false, false, false, nil)
-	if err != nil {
-		return fmt.Errorf("failed to declare a queue: %v", err)
-	}
-
-	queueSold, err := ch.QueueDeclare("ecom-queue-item-sold", true, false, false, false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to declare a queue: %v", err)
 	}
@@ -49,11 +50,6 @@ func setupRabbitMQ() error {
 	}
 
 	err = ch.QueueBind(queueBuy.Name, "ecom.item.buy", "ecom-exchange", false, nil)
-	if err != nil {
-		return fmt.Errorf("failed to bind the queue to the exchange: %v", err)
-	}
-
-	err = ch.QueueBind(queueSold.Name, "ecom.item.sold", "ecom-exchange", false, nil)
 	if err != nil {
 		return fmt.Errorf("failed to bind the queue to the exchange: %v", err)
 	}
@@ -80,10 +76,4 @@ func publishToRabbitMQ(routingKey string, message []byte) {
 	if err != nil {
 		log.Fatalf("Failed to publish a message: %v", err)
 	}
-}
-
-type NotificationItem struct {
-	Email string  `json:"email"`
-	Name  string  `json:"item"`
-	Price float64 `json:"price"`
 }
