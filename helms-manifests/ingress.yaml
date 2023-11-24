@@ -25,6 +25,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: auth-svc  # ...to the auth-service service
+                name: auth-svc  # ...to the auth-svc service
                 port:
                   number: 8080

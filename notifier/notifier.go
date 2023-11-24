@@ -22,7 +22,6 @@ func consumeFromRabbitMQ(queueName string, routingKey string, handler func([]byt
 	if err != nil {
 		log.Fatalf("Failed to open a channel: %v", err)
 	}
-	defer ch.Close()
 
 	// Declare the queue
 	queue, err := ch.QueueDeclare(

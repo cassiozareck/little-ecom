@@ -14,6 +14,7 @@ type NotificationItem struct {
 	Price float64 `json:"price"`
 }
 
+// setupRabbitMQ connects to RabbitMQ and creates the necessary queues and exchanges
 func setupRabbitMQ() error {
 	conn, err := amqp.Dial("amqp://user:123@rabbitmq.default.svc.cluster.local:5672/")
 	if err != nil {
@@ -56,6 +57,8 @@ func setupRabbitMQ() error {
 
 	return nil
 }
+
+// publishToRabbitMQ publishes a message to RabbitMQ
 func publishToRabbitMQ(routingKey string, message []byte) {
 	ch, err := rabbitMQConn.Channel()
 	if err != nil {

@@ -31,6 +31,7 @@ func extractAndValidateToken(r *http.Request, trunk bool) (string, error) {
 	return email, nil
 }
 
+// extractToken extracts the token from the Authorization header
 func extractToken(r *http.Request) string {
 	bearToken := r.Header.Get("Authorization")
 	if bearToken == "" {
@@ -43,6 +44,7 @@ func extractToken(r *http.Request) string {
 	return strArr[1]
 }
 
+// validateToken validates the token with the auth service
 func validateToken(token string) (string, error) {
 	type TokenRequest struct {
 		Token string `json:"token"`
@@ -53,6 +55,7 @@ func validateToken(token string) (string, error) {
 		return "", err
 	}
 
+	// Send the token to the auth service
 	resp, err := http.Post("http://auth-svc:8080/auth/validate", "application/json", bytes.NewBuffer(tokenReqBytes))
 	if err != nil {
 		return "", err

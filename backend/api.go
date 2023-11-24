@@ -30,8 +30,9 @@ func validateItem(item *Item) error {
 	return nil
 }
 
+// RemoveItem removes an item based on its ID.
 func RemoveItem(w http.ResponseWriter, r *http.Request) {
-	// put here token validation see if hes updating item hes owner
+
 	vars := mux.Vars(r)
 	itemID, err := primitive.ObjectIDFromHex(vars["id"])
 	if err != nil {
@@ -125,6 +126,7 @@ func UpdateItem(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// GetItems retrieves all items from the database.
 func GetItems(w http.ResponseWriter, r *http.Request) {
 	var items []Item
 
@@ -171,6 +173,8 @@ func GetItems(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// AddItem adds a new item (product) to the database. It also sends a message to the notifier service.
+// Which will email the user.
 func AddItem(w http.ResponseWriter, r *http.Request) {
 	var item Item
 
@@ -317,6 +321,8 @@ func GetItemsByOwner(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// BuyItem buys an item based on its ID. It also sends a message to the notifier service.
+// So the user will be notified through email.
 func BuyItem(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	itemID, err := primitive.ObjectIDFromHex(vars["id"])

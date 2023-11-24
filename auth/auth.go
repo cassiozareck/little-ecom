@@ -216,7 +216,7 @@ func main() {
 	// Build a PostgreSQL connection string using the environment variables DB_account and DB_PASSWORD
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := "192.168.3.9"
+	dbHost := os.Getenv("DB_HOST")
 	dbPort := "5432"
 	dbName := "auth"
 
